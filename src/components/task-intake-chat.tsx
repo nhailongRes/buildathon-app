@@ -139,23 +139,32 @@ export function TaskIntakeChat() {
   }
 
   return (
-    <Card className="mb-6">
-      <CardHeader className="flex-row items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <Sparkles className="size-4 text-zinc-500" />
-          <CardTitle>Task intake</CardTitle>
+    <Card className="overflow-hidden">
+      <CardHeader className="flex-row items-start justify-between gap-3 border-b p-4">
+        <div className="flex items-start gap-3">
+          <div className="flex size-8 shrink-0 items-center justify-center rounded-md bg-zinc-100 text-zinc-600">
+            <Sparkles className="size-4" />
+          </div>
+          <div>
+            <CardTitle className="text-base">Task intake</CardTitle>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Turn rough plans into task drafts.
+            </p>
+          </div>
         </div>
-        <Badge variant="outline">AI draft</Badge>
+        <Badge variant="outline" className="mt-1">
+          AI draft
+        </Badge>
       </CardHeader>
-      <CardContent className="flex flex-col gap-4">
-        <div className="flex max-h-72 min-h-40 flex-col gap-3 overflow-y-auto rounded-lg border border-zinc-200 bg-zinc-50 p-3">
+      <CardContent className="flex flex-col gap-4 p-4">
+        <div className="flex max-h-72 min-h-36 flex-col gap-3 overflow-y-auto rounded-lg border border-zinc-200 bg-zinc-50/80 p-3">
           {messages.map((message, index) => (
             <div
               key={`${message.role}-${index}`}
               className={
                 message.role === 'user'
-                  ? 'ml-auto max-w-[85%] rounded-lg bg-zinc-900 px-3 py-2 text-sm text-white'
-                  : 'mr-auto max-w-[85%] rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-700'
+                  ? 'ml-auto max-w-[88%] rounded-lg bg-zinc-900 px-3 py-2 text-sm leading-6 text-white'
+                  : 'mr-auto max-w-[88%] rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm leading-6 text-zinc-700'
               }
             >
               {message.content}
@@ -176,7 +185,7 @@ export function TaskIntakeChat() {
               return (
                 <div
                   key={key}
-                  className="flex flex-col gap-3 rounded-lg border border-zinc-200 bg-white p-3 sm:flex-row sm:items-start sm:justify-between"
+                  className="flex flex-col gap-3 rounded-lg border border-zinc-200 bg-white p-3 shadow-sm sm:flex-row sm:items-start sm:justify-between"
                 >
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
@@ -214,11 +223,11 @@ export function TaskIntakeChat() {
           <textarea
             value={input}
             onChange={(event) => setInput(event.target.value)}
-            placeholder="e.g. I have a COMP3120 report due next Friday and need to review the rubric."
-            className="min-h-24 w-full resize-none rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-400 focus:outline-none"
+            placeholder="e.g. Dinner with Andri at 8 pm tonight, and COMP3120 report due Friday."
+            className="min-h-24 w-full resize-none rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm leading-6 text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-400 focus:outline-none focus:ring-3 focus:ring-zinc-200"
             disabled={isThinking}
           />
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <p className="min-h-5 text-sm text-red-600">{error}</p>
             <Button type="submit" disabled={!canSend}>
               <SendHorizontal />

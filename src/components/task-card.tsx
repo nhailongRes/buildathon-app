@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { ChevronRight } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import type { Task } from '@/lib/tasks'
 
@@ -17,10 +18,10 @@ export function TaskCard({ task }: { task: Task }) {
 
   return (
     <Link href={`/tasks/${task.id}`}>
-      <Card className="hover:border-foreground/20 transition-all hover:shadow-sm cursor-pointer">
-        <CardContent className="flex items-center gap-4 p-4">
+      <Card className="cursor-pointer bg-background transition-all hover:border-foreground/20 hover:shadow-sm">
+        <CardContent className="flex min-h-20 items-center gap-4 p-4">
           <div className="flex-1 min-w-0">
-            <p className="font-medium text-foreground truncate">{task.title}</p>
+            <p className="truncate font-medium text-foreground">{task.title}</p>
             <div className="flex items-center gap-2 mt-1 flex-wrap">
               {task.subject && (
                 <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground font-medium">
@@ -34,7 +35,7 @@ export function TaskCard({ task }: { task: Task }) {
               )}
             </div>
           </div>
-          <span className="text-muted-foreground text-sm">→</span>
+          <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
         </CardContent>
       </Card>
     </Link>
