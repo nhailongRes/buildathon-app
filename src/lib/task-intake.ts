@@ -12,6 +12,14 @@ export const taskDraftSchema = z.object({
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/)
     .nullable(),
+  startTime: z
+    .string()
+    .regex(/^\d{2}:\d{2}$/)
+    .nullable(),
+  endTime: z
+    .string()
+    .regex(/^\d{2}:\d{2}$/)
+    .nullable(),
   scratchpadContent: z.string().trim().max(1200).nullable(),
 })
 
@@ -29,4 +37,3 @@ export const taskIntakeRequestSchema = z.object({
 export type TaskIntakeMessage = z.infer<typeof taskIntakeMessageSchema>
 export type TaskDraft = z.infer<typeof taskDraftSchema>
 export type TaskIntakeResponse = z.infer<typeof taskIntakeResponseSchema>
-

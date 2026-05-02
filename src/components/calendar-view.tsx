@@ -22,6 +22,7 @@ export type CalendarTask = {
   title: string
   subject: string | null
   dueDate: string | null
+  scratchpadContent: string | null
 }
 
 export type CalendarTimetableEvent = {
@@ -37,6 +38,13 @@ type CalendarDay = {
   date: Date
   key: string
 }
+
+type TaskSchedule = {
+  startMinutes: number
+  endMinutes: number
+}
+
+type ScheduledTask = CalendarTask & TaskSchedule
 
 function addDays(date: Date, days: number) {
   const next = new Date(date)
@@ -124,6 +132,109 @@ function durationMinutes(startAt: Date, endAt: Date) {
   return Math.max(0, Math.round((endAt.getTime() - startAt.getTime()) / 60000))
 }
 
+function blockTop(minutes: number) {
+  return ((minutes - START_HOUR * 60) / 60) * HOUR_HEIGHT
+}
+
+function blockHeight(startMinutes: number, endMinutes: number) {
+  return Math.max(((endMinutes - startMinutes) / 60) * HOUR_HEIGHT, 28)
+}
+
+function clockLabel(minutes: number) {
+  const hour = Math.floor(minutes / 60)
+  const minute = minutes % 60
+  return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`
+}
+
+function toClockMinutes(hourValue: string, minuteValue: string) {
+  const hour = Number(hourValue)
+  const minute = Number(minuteValue)
+  if (hour < 0 || hour > 23 || minute < 0 || minute > 59) return null
+  return hour * 60 + minute
+}
+
+function naturalClockToMinutes(value: string) {
+  const text = value.trim().toLowerCase()
+  const ampmMatch = text.match(/^(\d{1,2})(?::([0-5]\d))?\s*(am|pm)$/)
+
+  if (ampmMatch) {
+    let hour = Number(ampmMatch[1])
+    const minute = Number(ampmMatch[2] ?? '0')
+    if (hour < 1 || hour > 12) return null
+    if (ampmMatch[3] === 'pm' && hour !== 12) hour += 12
+    if (ampmMatch[3] === 'am' && hour === 12) hour = 0
+    return hour * 60 + minute
+  }
+
+  const twentyFourHourMatch = text.match(/^([01]?\d|2[0-3]):([0-5]\d)$/)
+  if (!twentyFourHourMatch) return null
+  return toClockMinutes(twentyFourHourMatch[1], twentyFourHourMatch[2])
+}
+
+function parseExplicitTaskTime(text: string): Partial<TaskSchedule> | null {
+  const scheduledMatch = text.match(
+    /scheduled time:\s*([01]?\d|2[0-3]):([0-5]\d)(?:\s*[-–]\s*([01]?\d|2[0-3]):([0-5]\d))?/i,
+  )
+
+  if (scheduledMatch) {
+    const startMinutes = toClockMinutes(scheduledMatch[1], scheduledMatch[2])
+    const endMinutes =
+      scheduledMatch[3] && scheduledMatch[4]
+        ? toClockMinutes(scheduledMatch[3], scheduledMatch[4])
+        : null
+
+    if (startMinutes !== null) {
+      return {
+        startMinutes,
+        ...(endMinutes !== null && endMinutes > startMinutes ? { endMinutes } : {}),
+      }
+    }
+  }
+
+  const naturalTimes = Array.from(
+    text.matchAll(/\b((?:[01]?\d|2[0-3]):[0-5]\d|(?:1[0-2]|0?[1-9])(?::[0-5]\d)?\s*(?:am|pm))\b/gi),
+  )
+    .map((match) => naturalClockToMinutes(match[1]))
+    .filter((minutes): minutes is number => minutes !== null)
+
+  if (naturalTimes.length === 0) return null
+
+  const [startMinutes, possibleEndMinutes] = naturalTimes
+  return {
+    startMinutes,
+    ...(possibleEndMinutes !== undefined && possibleEndMinutes > startMinutes
+      ? { endMinutes: possibleEndMinutes }
+      : {}),
+  }
+}
+
+function defaultDurationForTask(task: CalendarTask) {
+  const text = `${task.title} ${task.subject ?? ''} ${task.scratchpadContent ?? ''}`
+  return /\b(dinner|lunch|breakfast|brunch|meal|social|party|catch up|meet)\b/i.test(text)
+    ? 90
+    : 60
+}
+
+function getTaskSchedule(task: CalendarTask): TaskSchedule | null {
+  if (!task.dueDate) return null
+
+  const text = `${task.scratchpadContent ?? ''}\n${task.title}`
+  const parsed = parseExplicitTaskTime(text)
+  if (!parsed || parsed.startMinutes === undefined) return null
+
+  const endMinutes =
+    parsed.endMinutes ?? Math.min(parsed.startMinutes + defaultDurationForTask(task), 24 * 60)
+
+  return {
+    startMinutes: parsed.startMinutes,
+    endMinutes,
+  }
+}
+
+function plural(count: number, singular: string, pluralLabel = `${singular}s`) {
+  return `${count} ${count === 1 ? singular : pluralLabel}`
+}
+
 export function CalendarView({
   tasks,
   events,
@@ -154,13 +265,33 @@ export function CalendarView({
   }, [selectedDayKey, todayKey])
 
   const tasksByDay = useMemo(() => {
-    const grouped = new Map<string, CalendarTask[]>()
+    const dueTasks = new Map<string, CalendarTask[]>()
+    const scheduledTasks = new Map<string, ScheduledTask[]>()
+
     for (const task of tasks) {
       if (!task.dueDate) continue
       const key = dayKey(new Date(task.dueDate))
-      grouped.set(key, [...(grouped.get(key) ?? []), task])
+      const schedule = getTaskSchedule(task)
+
+      if (schedule) {
+        scheduledTasks.set(key, [
+          ...(scheduledTasks.get(key) ?? []),
+          { ...task, ...schedule },
+        ])
+        continue
+      }
+
+      dueTasks.set(key, [...(dueTasks.get(key) ?? []), task])
     }
-    return grouped
+
+    for (const [key, dayTasks] of scheduledTasks) {
+      scheduledTasks.set(
+        key,
+        [...dayTasks].sort((a, b) => a.startMinutes - b.startMinutes),
+      )
+    }
+
+    return { dueTasks, scheduledTasks }
   }, [tasks])
 
   const unscheduledTasks = useMemo(
@@ -179,7 +310,8 @@ export function CalendarView({
 
   const selectedDate = parseDateKey(selectedDayKey)
   const selectedEvents = eventsByDay.get(selectedDayKey) ?? []
-  const selectedTasks = tasksByDay.get(selectedDayKey) ?? []
+  const selectedDueTasks = tasksByDay.dueTasks.get(selectedDayKey) ?? []
+  const selectedScheduledTasks = tasksByDay.scheduledTasks.get(selectedDayKey) ?? []
   const totalTimelineHeight = (END_HOUR - START_HOUR + 1) * HOUR_HEIGHT
   const hours = Array.from(
     { length: END_HOUR - START_HOUR + 1 },
@@ -228,9 +360,24 @@ export function CalendarView({
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-7">
         {days.map((day) => {
           const dayEvents = eventsByDay.get(day.key) ?? []
-          const dayTasks = tasksByDay.get(day.key) ?? []
+          const dayDueTasks = tasksByDay.dueTasks.get(day.key) ?? []
+          const dayScheduledTasks = tasksByDay.scheduledTasks.get(day.key) ?? []
           const isSelected = day.key === selectedDayKey
           const isToday = sameDayKey(day.date, today)
+          const dayPreviewItems = [
+            ...dayEvents.map((event) => ({
+              id: `event-${event.id}`,
+              label: `${timeLabel(new Date(event.startAt))} ${event.title}`,
+              startMinutes: minutesSinceStartOfDay(new Date(event.startAt)),
+              className: 'bg-sky-50 text-sky-700',
+            })),
+            ...dayScheduledTasks.map((task) => ({
+              id: `task-${task.id}`,
+              label: `${clockLabel(task.startMinutes)} ${task.title}`,
+              startMinutes: task.startMinutes,
+              className: 'bg-amber-50 text-amber-800',
+            })),
+          ].sort((a, b) => a.startMinutes - b.startMinutes)
           const scheduledHours =
             Math.round(
               dayEvents.reduce((sum, event) => {
@@ -240,6 +387,9 @@ export function CalendarView({
                 )
               }, 0) / 6,
             ) / 10
+          const displayedPreviewCount =
+            Math.min(dayPreviewItems.length, 3) + Math.min(dayDueTasks.length, 2)
+          const totalPreviewCount = dayPreviewItems.length + dayDueTasks.length
 
           return (
             <button
@@ -272,19 +422,22 @@ export function CalendarView({
 
               <div className="text-xs text-muted-foreground">
                 {scheduledHours > 0 ? `${scheduledHours}h timetable` : 'No timetable'}
-                {dayTasks.length > 0 ? `, ${dayTasks.length} task${dayTasks.length === 1 ? '' : 's'}` : ''}
+                {dayScheduledTasks.length > 0
+                  ? `, ${plural(dayScheduledTasks.length, 'scheduled task')}`
+                  : ''}
+                {dayDueTasks.length > 0 ? `, ${plural(dayDueTasks.length, 'due task')}` : ''}
               </div>
 
               <div className="flex flex-col gap-1">
-                {dayEvents.slice(0, 2).map((event) => (
+                {dayPreviewItems.slice(0, 3).map((item) => (
                   <span
-                    key={event.id}
-                    className="truncate rounded bg-sky-50 px-2 py-1 text-xs text-sky-700"
+                    key={item.id}
+                    className={cn('truncate rounded px-2 py-1 text-xs', item.className)}
                   >
-                    {timeLabel(new Date(event.startAt))} {event.title}
+                    {item.label}
                   </span>
                 ))}
-                {dayTasks.slice(0, 2).map((task) => (
+                {dayDueTasks.slice(0, 2).map((task) => (
                   <span
                     key={task.id}
                     className="truncate rounded bg-amber-50 px-2 py-1 text-xs text-amber-800"
@@ -292,9 +445,9 @@ export function CalendarView({
                     Due {task.title}
                   </span>
                 ))}
-                {dayEvents.length + dayTasks.length > 4 ? (
+                {totalPreviewCount > displayedPreviewCount ? (
                   <span className="text-xs text-muted-foreground">
-                    +{dayEvents.length + dayTasks.length - 4} more
+                    +{totalPreviewCount - displayedPreviewCount} more
                   </span>
                 ) : null}
               </div>
@@ -311,18 +464,19 @@ export function CalendarView({
               <h3 className="font-semibold">{longDayLabel(selectedDate)}</h3>
             </div>
             <p className="text-sm text-muted-foreground">
-              {selectedEvents.length} timetable block{selectedEvents.length === 1 ? '' : 's'} and{' '}
-              {selectedTasks.length} due task{selectedTasks.length === 1 ? '' : 's'}.
+              {plural(selectedEvents.length, 'timetable block')},{' '}
+              {plural(selectedScheduledTasks.length, 'scheduled task')}, and{' '}
+              {plural(selectedDueTasks.length, 'due task')}.
             </p>
           </div>
 
-          {selectedTasks.length > 0 ? (
+          {selectedDueTasks.length > 0 ? (
             <div className="border-b bg-amber-50/50 px-4 py-3">
               <p className="mb-2 text-xs font-semibold uppercase text-amber-900/70">
                 Due tasks
               </p>
               <div className="grid gap-2 sm:grid-cols-2">
-                {selectedTasks.map((task) => (
+                {selectedDueTasks.map((task) => (
                   <div
                     key={task.id}
                     className="rounded-md border border-amber-200 bg-white px-3 py-2"
@@ -351,9 +505,9 @@ export function CalendarView({
                 </div>
               ))}
 
-              {selectedEvents.length === 0 ? (
+              {selectedEvents.length === 0 && selectedScheduledTasks.length === 0 ? (
                 <div className="absolute left-16 right-2 top-6 rounded-lg border border-dashed px-4 py-6 text-center text-sm text-muted-foreground">
-                  Nothing fixed in the timetable for this day.
+                  Nothing scheduled on the timeline for this day.
                 </div>
               ) : null}
 
@@ -384,6 +538,31 @@ export function CalendarView({
                   </div>
                 )
               })}
+
+              {selectedScheduledTasks.map((task) => (
+                <div
+                  key={task.id}
+                  className="absolute left-16 right-2 overflow-hidden rounded-md border-l-4 border-amber-500 bg-amber-50 px-3 py-2 shadow-sm"
+                  style={{
+                    top: Math.max(blockTop(task.startMinutes), 0),
+                    height: blockHeight(task.startMinutes, task.endMinutes),
+                  }}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <p className="truncate text-sm font-medium text-amber-950">
+                      {task.title}
+                    </p>
+                    <span className="shrink-0 font-mono text-xs text-amber-800">
+                      {clockLabel(task.startMinutes)}-{clockLabel(task.endMinutes)}
+                    </span>
+                  </div>
+                  {task.subject ? (
+                    <p className="mt-1 truncate text-xs text-amber-900/80">
+                      {task.subject}
+                    </p>
+                  ) : null}
+                </div>
+              ))}
 
               {showNow ? (
                 <div
@@ -423,8 +602,8 @@ export function CalendarView({
 
           <div className="rounded-lg border bg-zinc-50 p-4 text-sm text-muted-foreground">
             <p>
-              Blue blocks come from imported timetable events. Amber blocks are task due
-              dates from the task list.
+              Blue blocks come from imported timetable events. Amber blocks are scheduled
+              tasks or due dates from the task list.
             </p>
           </div>
         </aside>

@@ -25,6 +25,25 @@ function formatDraftDate(date: string | null) {
   })
 }
 
+function formatDraftWhen(draft: TaskDraft) {
+  const date = formatDraftDate(draft.dueDate)
+  if (!draft.startTime) return date
+  return `${date}, ${draft.startTime}${draft.endTime ? `-${draft.endTime}` : ''}`
+}
+
+function buildTaskDateTime(draft: TaskDraft) {
+  if (!draft.dueDate) return undefined
+  if (!draft.startTime) return draft.dueDate
+  return new Date(`${draft.dueDate}T${draft.startTime}:00`).toISOString()
+}
+
+function buildScratchpad(draft: TaskDraft) {
+  const notes = draft.scratchpadContent?.trim()
+  if (!draft.startTime) return notes || undefined
+  const timeNote = `Scheduled time: ${draft.startTime}${draft.endTime ? `-${draft.endTime}` : ''}.`
+  return notes ? `${notes}\n${timeNote}` : timeNote
+}
+
 export function TaskIntakeChat() {
   const router = useRouter()
   const [messages, setMessages] = useState<TaskIntakeMessage[]>([initialMessage])
@@ -99,8 +118,8 @@ export function TaskIntakeChat() {
         body: JSON.stringify({
           title: draft.title,
           subject: draft.subject ?? undefined,
-          dueDate: draft.dueDate ?? undefined,
-          scratchpadContent: draft.scratchpadContent ?? undefined,
+          dueDate: buildTaskDateTime(draft),
+          scratchpadContent: buildScratchpad(draft),
         }),
       })
 
@@ -167,7 +186,7 @@ export function TaskIntakeChat() {
                       ) : null}
                     </div>
                     <p className="mt-1 text-xs text-zinc-500">
-                      {formatDraftDate(draft.dueDate)}
+                      {formatDraftWhen(draft)}
                     </p>
                     {draft.scratchpadContent ? (
                       <p className="mt-2 line-clamp-2 text-sm text-zinc-600">
