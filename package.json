@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.71",
+    "@ai-sdk/deepseek": "^2.0.32",
     "@ai-sdk/openai": "^3.0.58",
     "@anthropic-ai/sdk": "^0.92.0",
     "@hookform/resolvers": "^5.2.2",
