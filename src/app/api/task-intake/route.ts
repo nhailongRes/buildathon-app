@@ -17,7 +17,7 @@ export const dynamic = 'force-dynamic'
 
 const DEFAULT_OPENAI_MODEL = 'gpt-5.4-mini'
 const DEFAULT_ANTHROPIC_MODEL = 'claude-sonnet-4-6'
-const DEFAULT_DEEPSEEK_MODEL = 'deepseek-chat'
+const DEFAULT_DEEPSEEK_MODEL = 'deepseek-v4-pro'
 
 function currentSydneyDate() {
   return new Intl.DateTimeFormat('en-CA', {
