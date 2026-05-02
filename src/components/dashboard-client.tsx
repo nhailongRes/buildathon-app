@@ -30,16 +30,19 @@ export function DashboardClient({ initialTasks }: { initialTasks: Task[] }) {
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
-      {/* Navbar */}
       <header className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur">
         <div className="mx-auto flex h-14 max-w-4xl items-center justify-between px-6">
           <Link href="/" className="text-base font-semibold tracking-tight">AI Study Planner</Link>
-          <Button size="sm" onClick={() => setModalOpen(true)}>+ New Task</Button>
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="sm" asChild>
+              <Link href="/dashboard/timetable">📅 Timetable</Link>
+            </Button>
+            <Button size="sm" onClick={() => setModalOpen(true)}>+ New Task</Button>
+          </div>
         </div>
       </header>
 
       <main className="mx-auto w-full max-w-4xl px-6 py-10 flex-1">
-        {/* Stats */}
         <div className="grid grid-cols-3 gap-4 mb-10">
           {[
             { label: 'Overdue', value: overdue.length, urgent: overdue.length > 0 },
@@ -57,7 +60,6 @@ export function DashboardClient({ initialTasks }: { initialTasks: Task[] }) {
           ))}
         </div>
 
-        {/* Empty state */}
         {initialTasks.length === 0 ? (
           <div className="rounded-xl border border-dashed border-border bg-muted/30 p-16 text-center">
             <p className="text-4xl mb-4">📚</p>
