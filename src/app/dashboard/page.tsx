@@ -1,14 +1,9 @@
-import { logout } from "@/app/(auth)/actions"
-import { Button } from "@/components/ui/button"
+import { getTasksByUser } from '@/lib/tasks'
+import { DashboardClient } from '@/components/dashboard-client'
 
-export default function DashboardPage() {
-  return (
-    <div className="flex min-h-screen flex-col items-center justify-center gap-2">
-      <h1 className="text-2xl font-semibold">Dashboard</h1>
-      <p className="text-muted-foreground">Your planner is coming soon.</p>
-      <form action={logout} className="mt-4">
-        <Button variant="outline" size="sm" type="submit">Sign out</Button>
-      </form>
-    </div>
-  )
+const DEMO_USER_ID = 'demo-user-1'
+
+export default async function DashboardPage() {
+  const tasks = await getTasksByUser(DEMO_USER_ID)
+  return <DashboardClient initialTasks={tasks} />
 }

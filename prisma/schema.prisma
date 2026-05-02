@@ -1,0 +1,57 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Task {
+  id                String      @id @default(cuid())
+  userId            String
+  title             String
+  subject           String?
+  dueDate           DateTime?
+  scratchpadContent String      @default("")
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+
+  microSteps        MicroStep[]
+}
+
+model MicroStep {
+  id               String    @id @default(cuid())
+  taskId           String
+  title            String
+  estimatedMinutes Int
+  completed        Boolean   @default(false)
+  completedAt      DateTime?
+  order            Int
+  archived         Boolean   @default(false)
+  createdAt        DateTime  @default(now())
+
+  task             Task      @relation(fields: [taskId], references: [id], onDelete: Cascade)
+}
+
+model TimetableEvent {
+  id          String   @id @default(cuid())
+  userId      String
+  uid         String
+  title       String
+  startAt     DateTime
+  endAt       DateTime
+  location    String?
+  description String?
+  sourceUrl   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([userId, uid])
+  @@index([userId, startAt])
+}
