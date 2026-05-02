@@ -2,12 +2,10 @@ import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { fetchICalText, parseICal } from '@/lib/ical'
 import { upsertTimetableEvents } from '@/lib/timetable'
+import { DEMO_USER_ID } from '@/lib/demo-user'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
-
-// Hardcoded for demo - replaced with real auth in a later slice
-const DEMO_USER_ID = 'demo-user-1'
 
 const Body = z.object({
   url: z

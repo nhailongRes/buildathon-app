@@ -23,6 +23,7 @@ model Task {
   updatedAt         DateTime    @updatedAt
 
   microSteps        MicroStep[]
+  scheduleBlocks    TaskScheduleBlock[]
 }
 
 model MicroStep {
@@ -54,4 +55,21 @@ model TimetableEvent {
 
   @@unique([userId, uid])
   @@index([userId, startAt])
+}
+
+model TaskScheduleBlock {
+  id        String   @id @default(cuid())
+  userId    String
+  taskId    String
+  startAt   DateTime
+  endAt     DateTime
+  source    String   @default("auto")
+  status    String   @default("planned")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@index([userId, startAt])
+  @@index([taskId, startAt])
 }

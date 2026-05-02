@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getTaskById, updateScratchpad } from '@/lib/tasks'
-
-const DEMO_USER_ID = 'demo-user-1'
+import { DEMO_USER_ID } from '@/lib/demo-user'
 
 export async function PATCH(
   request: Request,

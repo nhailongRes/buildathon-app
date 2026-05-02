@@ -1,9 +1,7 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createTask, getTasksByUser } from '@/lib/tasks'
-
-// Hardcoded for demo - replaced with real auth in a later slice
-const DEMO_USER_ID = 'demo-user-1'
+import { DEMO_USER_ID } from '@/lib/demo-user'
 
 const CreateTaskBody = z.object({
   title: z.string().trim().min(1, 'title is required'),

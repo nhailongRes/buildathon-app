@@ -1,11 +1,14 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import {
   CalendarDays,
+  CalendarPlus,
   ChevronLeft,
   ChevronRight,
   Clock,
+  Loader2,
   MapPin,
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
@@ -32,6 +35,15 @@ export type CalendarTimetableEvent = {
   endAt: string
   location: string | null
   description: string | null
+}
+
+export type CalendarPlannedBlock = {
+  id: string
+  taskId: string
+  title: string
+  subject: string | null
+  startAt: string
+  endAt: string
 }
 
 type CalendarDay = {
@@ -238,14 +250,19 @@ function plural(count: number, singular: string, pluralLabel = `${singular}s`) {
 export function CalendarView({
   tasks,
   events,
+  plannedBlocks,
 }: {
   tasks: CalendarTask[]
   events: CalendarTimetableEvent[]
+  plannedBlocks: CalendarPlannedBlock[]
 }) {
+  const router = useRouter()
   const today = useMemo(() => new Date(), [])
   const todayKey = dayKey(today)
   const [weekStartKey, setWeekStartKey] = useState(dayKey(startOfWeek(today)))
   const [selectedDayKey, setSelectedDayKey] = useState(todayKey)
+  const [planning, setPlanning] = useState(false)
+  const [planMessage, setPlanMessage] = useState<string | null>(null)
   const nowRef = useRef<HTMLDivElement>(null)
 
   const weekStart = useMemo(() => parseDateKey(weekStartKey), [weekStartKey])
@@ -294,9 +311,36 @@ export function CalendarView({
     return { dueTasks, scheduledTasks }
   }, [tasks])
 
+  const plannedBlocksByDay = useMemo(() => {
+    const grouped = new Map<string, CalendarPlannedBlock[]>()
+    for (const block of plannedBlocks) {
+      const key = dayKey(new Date(block.startAt))
+      grouped.set(key, [...(grouped.get(key) ?? []), block])
+    }
+
+    for (const [key, dayBlocks] of grouped) {
+      grouped.set(
+        key,
+        [...dayBlocks].sort(
+          (a, b) => new Date(a.startAt).getTime() - new Date(b.startAt).getTime(),
+        ),
+      )
+    }
+
+    return grouped
+  }, [plannedBlocks])
+
+  const plannedTaskIds = useMemo(() => {
+    const ids = new Set<string>()
+    for (const block of plannedBlocks) {
+      if (new Date(block.endAt) >= today) ids.add(block.taskId)
+    }
+    return ids
+  }, [plannedBlocks, today])
+
   const unscheduledTasks = useMemo(
-    () => tasks.filter((task) => !task.dueDate).slice(0, 6),
-    [tasks],
+    () => tasks.filter((task) => !task.dueDate && !plannedTaskIds.has(task.id)).slice(0, 6),
+    [plannedTaskIds, tasks],
   )
 
   const eventsByDay = useMemo(() => {
@@ -312,6 +356,7 @@ export function CalendarView({
   const selectedEvents = eventsByDay.get(selectedDayKey) ?? []
   const selectedDueTasks = tasksByDay.dueTasks.get(selectedDayKey) ?? []
   const selectedScheduledTasks = tasksByDay.scheduledTasks.get(selectedDayKey) ?? []
+  const selectedPlannedBlocks = plannedBlocksByDay.get(selectedDayKey) ?? []
   const totalTimelineHeight = (END_HOUR - START_HOUR + 1) * HOUR_HEIGHT
   const hours = Array.from(
     { length: END_HOUR - START_HOUR + 1 },
@@ -333,6 +378,39 @@ export function CalendarView({
   function resetWeek() {
     setWeekStartKey(dayKey(startOfWeek(new Date())))
     setSelectedDayKey(dayKey(new Date()))
+  }
+
+  async function planWeek() {
+    setPlanning(true)
+    setPlanMessage(null)
+
+    try {
+      const response = await fetch('/api/schedule/week', { method: 'POST' })
+      const data = (await response.json().catch(() => ({}))) as {
+        plannedCount?: number
+        replacedBlockCount?: number
+        skippedTasks?: Array<{ title: string }>
+        error?: string
+      }
+
+      if (!response.ok) {
+        setPlanMessage(data.error ?? `Planning failed (HTTP ${response.status}).`)
+        return
+      }
+
+      const plannedCount = data.plannedCount ?? 0
+      const skippedCount = data.skippedTasks?.length ?? 0
+      const replacedCount = data.replacedBlockCount ?? 0
+      const replacedText = replacedCount > 0 ? ` Replaced ${plural(replacedCount, 'older block')}.` : ''
+      const skippedText = skippedCount > 0 ? ` ${plural(skippedCount, 'task')} still needs a slot.` : ''
+
+      setPlanMessage(`Planned ${plural(plannedCount, 'task block')}.${replacedText}${skippedText}`)
+      router.refresh()
+    } catch (error) {
+      setPlanMessage(error instanceof Error ? error.message : 'Planning failed.')
+    } finally {
+      setPlanning(false)
+    }
   }
 
   return (
@@ -362,6 +440,7 @@ export function CalendarView({
           const dayEvents = eventsByDay.get(day.key) ?? []
           const dayDueTasks = tasksByDay.dueTasks.get(day.key) ?? []
           const dayScheduledTasks = tasksByDay.scheduledTasks.get(day.key) ?? []
+          const dayPlannedBlocks = plannedBlocksByDay.get(day.key) ?? []
           const isSelected = day.key === selectedDayKey
           const isToday = sameDayKey(day.date, today)
           const dayPreviewItems = [
@@ -376,6 +455,12 @@ export function CalendarView({
               label: `${clockLabel(task.startMinutes)} ${task.title}`,
               startMinutes: task.startMinutes,
               className: 'bg-amber-50 text-amber-800',
+            })),
+            ...dayPlannedBlocks.map((block) => ({
+              id: `plan-${block.id}`,
+              label: `${timeLabel(new Date(block.startAt))} ${block.title}`,
+              startMinutes: minutesSinceStartOfDay(new Date(block.startAt)),
+              className: 'bg-emerald-50 text-emerald-800',
             })),
           ].sort((a, b) => a.startMinutes - b.startMinutes)
           const scheduledHours =
@@ -425,6 +510,9 @@ export function CalendarView({
                 {dayScheduledTasks.length > 0
                   ? `, ${plural(dayScheduledTasks.length, 'scheduled task')}`
                   : ''}
+                {dayPlannedBlocks.length > 0
+                  ? `, ${plural(dayPlannedBlocks.length, 'planned block')}`
+                  : ''}
                 {dayDueTasks.length > 0 ? `, ${plural(dayDueTasks.length, 'due task')}` : ''}
               </div>
 
@@ -465,7 +553,8 @@ export function CalendarView({
             </div>
             <p className="text-sm text-muted-foreground">
               {plural(selectedEvents.length, 'timetable block')},{' '}
-              {plural(selectedScheduledTasks.length, 'scheduled task')}, and{' '}
+              {plural(selectedScheduledTasks.length, 'scheduled task')},{' '}
+              {plural(selectedPlannedBlocks.length, 'planned block')}, and{' '}
               {plural(selectedDueTasks.length, 'due task')}.
             </p>
           </div>
@@ -505,7 +594,9 @@ export function CalendarView({
                 </div>
               ))}
 
-              {selectedEvents.length === 0 && selectedScheduledTasks.length === 0 ? (
+              {selectedEvents.length === 0 &&
+              selectedScheduledTasks.length === 0 &&
+              selectedPlannedBlocks.length === 0 ? (
                 <div className="absolute left-16 right-2 top-6 rounded-lg border border-dashed px-4 py-6 text-center text-sm text-muted-foreground">
                   Nothing scheduled on the timeline for this day.
                 </div>
@@ -564,6 +655,35 @@ export function CalendarView({
                 </div>
               ))}
 
+              {selectedPlannedBlocks.map((block) => {
+                const startAt = new Date(block.startAt)
+                const endAt = new Date(block.endAt)
+                return (
+                  <div
+                    key={block.id}
+                    className="absolute left-16 right-2 overflow-hidden rounded-md border-l-4 border-emerald-500 bg-emerald-50 px-3 py-2 shadow-sm"
+                    style={{
+                      top: Math.max(eventTop(startAt), 0),
+                      height: eventHeight(startAt, endAt),
+                    }}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <p className="truncate text-sm font-medium text-emerald-950">
+                        {block.title}
+                      </p>
+                      <span className="shrink-0 font-mono text-xs text-emerald-800">
+                        {timeLabel(startAt)}-{timeLabel(endAt)}
+                      </span>
+                    </div>
+                    {block.subject ? (
+                      <p className="mt-1 truncate text-xs text-emerald-900/80">
+                        {block.subject}
+                      </p>
+                    ) : null}
+                  </div>
+                )
+              })}
+
               {showNow ? (
                 <div
                   ref={nowRef}
@@ -580,12 +700,38 @@ export function CalendarView({
 
         <aside className="flex flex-col gap-3">
           <div className="rounded-lg border bg-card p-4">
+            <div className="mb-3 flex items-start gap-2">
+              <CalendarPlus className="mt-0.5 size-4 text-muted-foreground" />
+              <div>
+                <h3 className="font-semibold">Plan this week</h3>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Place unscheduled tasks into open calendar slots.
+                </p>
+              </div>
+            </div>
+            <Button
+              type="button"
+              className="w-full"
+              disabled={planning || unscheduledTasks.length === 0}
+              onClick={planWeek}
+            >
+              {planning ? <Loader2 className="animate-spin" /> : <CalendarPlus />}
+              {planning ? 'Planning...' : 'Plan week'}
+            </Button>
+            {planMessage ? (
+              <p className="mt-3 text-sm text-muted-foreground">{planMessage}</p>
+            ) : null}
+          </div>
+
+          <div className="rounded-lg border bg-card p-4">
             <div className="mb-3 flex items-center gap-2">
               <Clock className="size-4 text-muted-foreground" />
               <h3 className="font-semibold">Unscheduled tasks</h3>
             </div>
             {unscheduledTasks.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Every task has a due date.</p>
+              <p className="text-sm text-muted-foreground">
+                Every task has a due date or a planned block.
+              </p>
             ) : (
               <div className="flex flex-col gap-2">
                 {unscheduledTasks.map((task) => (
@@ -603,7 +749,8 @@ export function CalendarView({
           <div className="rounded-lg border bg-zinc-50 p-4 text-sm text-muted-foreground">
             <p>
               Blue blocks come from imported timetable events. Amber blocks are scheduled
-              tasks or due dates from the task list.
+              tasks or due dates from the task list. Green blocks are auto-planned work
+              sessions.
             </p>
           </div>
         </aside>

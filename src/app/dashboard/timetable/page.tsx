@@ -2,11 +2,9 @@ import { getEventsForNextDays } from '@/lib/timetable'
 import { TimetablePasteForm } from '@/components/timetable-paste-form'
 import { TimetableWeekView } from '@/components/timetable-week-view'
 import { Card, CardContent } from '@/components/ui/card'
+import { DEMO_USER_ID } from '@/lib/demo-user'
 
 export const dynamic = 'force-dynamic'
-
-// Hardcoded for demo - replaced with real auth in a later slice
-const DEMO_USER_ID = 'demo-user-1'
 
 export default async function TimetablePage() {
   const events = await getEventsForNextDays(DEMO_USER_ID, 7)

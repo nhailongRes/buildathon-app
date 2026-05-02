@@ -5,15 +5,28 @@ import { redirect } from "next/navigation"
 import { headers } from "next/headers"
 import { createClient } from "@/lib/supabase/server"
 import { createAdminClient } from "@/lib/supabase/admin"
+import { DEMO_USER_EMAIL } from "@/lib/demo-user"
 
 type AuthState = { error: string } | undefined
 
 export async function login(prevState: AuthState, formData: FormData): Promise<AuthState> {
+  const email = formData.get("email") as string
+  const password = formData.get("password") as string
+
+  if (
+    process.env.DEMO_ACCOUNT_PASSWORD &&
+    email.toLowerCase() === DEMO_USER_EMAIL &&
+    password === process.env.DEMO_ACCOUNT_PASSWORD
+  ) {
+    revalidatePath("/", "layout")
+    redirect("/dashboard")
+  }
+
   const supabase = await createClient()
 
   const { error } = await supabase.auth.signInWithPassword({
-    email: formData.get("email") as string,
-    password: formData.get("password") as string,
+    email,
+    password,
   })
 
   if (error) return { error: error.message }

@@ -1,14 +1,19 @@
 import Link from 'next/link'
-import { CalendarView, type CalendarTask, type CalendarTimetableEvent } from '@/components/calendar-view'
+import {
+  CalendarView,
+  type CalendarPlannedBlock,
+  type CalendarTask,
+  type CalendarTimetableEvent,
+} from '@/components/calendar-view'
 import { TimetablePasteForm } from '@/components/timetable-paste-form'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { getEventsForRange } from '@/lib/timetable'
 import { getTasksByUser } from '@/lib/tasks'
+import { getScheduleBlocksForRange } from '@/lib/task-schedule'
+import { DEMO_USER_ID } from '@/lib/demo-user'
 
 export const dynamic = 'force-dynamic'
-
-const DEMO_USER_ID = 'demo-user-1'
 
 function startOfWeek(date: Date) {
   const start = new Date(date)
@@ -28,9 +33,10 @@ function addDays(date: Date, days: number) {
 export default async function CalendarPage() {
   const rangeStart = addDays(startOfWeek(new Date()), -7)
   const rangeEnd = addDays(rangeStart, 56)
-  const [tasks, events] = await Promise.all([
+  const [tasks, events, plannedBlocks] = await Promise.all([
     getTasksByUser(DEMO_USER_ID),
     getEventsForRange(DEMO_USER_ID, rangeStart, rangeEnd),
+    getScheduleBlocksForRange(DEMO_USER_ID, rangeStart, rangeEnd),
   ])
 
   const calendarTasks: CalendarTask[] = tasks.map((task) => ({
@@ -48,6 +54,15 @@ export default async function CalendarPage() {
     endAt: event.endAt.toISOString(),
     location: event.location,
     description: event.description,
+  }))
+
+  const calendarPlannedBlocks: CalendarPlannedBlock[] = plannedBlocks.map((block) => ({
+    id: block.id,
+    taskId: block.taskId,
+    title: block.task.title,
+    subject: block.task.subject,
+    startAt: block.startAt.toISOString(),
+    endAt: block.endAt.toISOString(),
   }))
 
   return (
@@ -80,7 +95,11 @@ export default async function CalendarPage() {
           </CardContent>
         </Card>
 
-        <CalendarView tasks={calendarTasks} events={calendarEvents} />
+        <CalendarView
+          tasks={calendarTasks}
+          events={calendarEvents}
+          plannedBlocks={calendarPlannedBlocks}
+        />
       </main>
     </div>
   )
