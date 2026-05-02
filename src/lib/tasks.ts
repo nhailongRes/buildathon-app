@@ -15,6 +15,7 @@ export async function createTask(data: {
   title: string
   subject?: string
   dueDate?: Date
+  scratchpadContent?: string
 }): Promise<Task> {
   return prisma.task.create({ data })
 }
