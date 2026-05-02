@@ -12,7 +12,7 @@ interface Props {
   onSave: (content: string) => void | Promise<void>
 }
 
-export function Scratchpad({ taskId: _, initialContent, onSave }: Props) {
+export function Scratchpad({ initialContent, onSave }: Props) {
   const [content, setContent] = useState(initialContent)
   const [isSaving, setIsSaving] = useState(false)
   const [showBreakNudge, setShowBreakNudge] = useState(false)
@@ -47,7 +47,6 @@ export function Scratchpad({ taskId: _, initialContent, onSave }: Props) {
         clearTimeout(nudgeTimerRef.current)
         nudgeTimerRef.current = null
       }
-      setShowBreakNudge(false)
     }
   }, [energyLevel])
 
@@ -106,9 +105,9 @@ export function Scratchpad({ taskId: _, initialContent, onSave }: Props) {
         )}
 
         {/* Break nudge */}
-        {showBreakNudge && (
+        {showBreakNudge && energyLevel === 'low' && (
           <div className="flex items-center justify-between rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-800">
-            <span>You've been struggling for a while — take a short break?</span>
+            <span>You&apos;ve been struggling for a while — take a short break?</span>
             <button
               onClick={() => setShowBreakNudge(false)}
               className="ml-4 text-amber-600 hover:text-amber-800"
