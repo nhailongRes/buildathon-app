@@ -1,4 +1,5 @@
 import { anthropic } from '@ai-sdk/anthropic'
+import { openai } from '@ai-sdk/openai'
 import { generateObject } from 'ai'
 import { NextResponse } from 'next/server'
 import {
@@ -13,6 +14,9 @@ import {
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
+const DEFAULT_OPENAI_MODEL = 'gpt-5.4-mini'
+const DEFAULT_ANTHROPIC_MODEL = 'claude-sonnet-4-6'
+
 function currentSydneyDate() {
   return new Intl.DateTimeFormat('en-CA', {
     timeZone: 'Australia/Sydney',
@@ -22,6 +26,18 @@ function currentSydneyDate() {
   }).format(new Date())
 }
 
+function getTaskIntakeModel() {
+  if (process.env.OPENAI_API_KEY) {
+    return openai(process.env.OPENAI_MODEL ?? DEFAULT_OPENAI_MODEL)
+  }
+
+  if (process.env.ANTHROPIC_API_KEY) {
+    return anthropic(process.env.ANTHROPIC_MODEL ?? DEFAULT_ANTHROPIC_MODEL)
+  }
+
+  return null
+}
+
 export async function POST(request: Request) {
   const parsed = taskIntakeRequestSchema.safeParse(await request.json().catch(() => null))
 
@@ -29,16 +45,18 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Invalid chat messages.' }, { status: 400 })
   }
 
-  if (!process.env.ANTHROPIC_API_KEY) {
+  const model = getTaskIntakeModel()
+
+  if (!model) {
     return NextResponse.json(
-      { error: 'ANTHROPIC_API_KEY is not configured.' },
+      { error: 'OPENAI_API_KEY or ANTHROPIC_API_KEY is required.' },
       { status: 503 },
     )
   }
 
   try {
     const result = await generateObject({
-      model: anthropic('claude-sonnet-4-6'),
+      model,
       system: TASK_INTAKE_SYSTEM_PROMPT,
       prompt: buildTaskIntakePrompt({
         messages: parsed.data.messages,
