@@ -1,38 +1,42 @@
 import Link from 'next/link'
-import { Badge } from '@/components/ui/badge'
+import { Card, CardContent } from '@/components/ui/card'
 import type { Task } from '@/lib/tasks'
 
-function formatDueDate(date: Date): string {
-  const d = new Date(date)
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  const tomorrow = new Date(today)
-  tomorrow.setDate(tomorrow.getDate() + 1)
-  d.setHours(0, 0, 0, 0)
-
-  if (d.getTime() === today.getTime()) return 'Due today'
-  if (d.getTime() === tomorrow.getTime()) return 'Due tomorrow'
-  if (d < today) return 'Overdue'
-  return `Due ${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
+function formatDue(date: Date): { label: string; className: string } {
+  const d = new Date(new Date(date).setHours(0,0,0,0))
+  const now = new Date(); now.setHours(0,0,0,0)
+  const diff = Math.round((d.getTime() - now.getTime()) / 86400000)
+  if (diff < 0) return { label: `${Math.abs(diff)}d overdue`, className: 'text-destructive bg-destructive/10' }
+  if (diff === 0) return { label: 'Due today', className: 'text-amber-600 bg-amber-50' }
+  if (diff === 1) return { label: 'Due tomorrow', className: 'text-orange-600 bg-orange-50' }
+  return { label: `Due ${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`, className: 'text-muted-foreground bg-muted' }
 }
 
 export function TaskCard({ task }: { task: Task }) {
+  const due = task.dueDate ? formatDue(task.dueDate) : null
+
   return (
-    <Link
-      href={`/tasks/${task.id}`}
-      className="block rounded-xl border border-zinc-200 bg-white p-4 shadow-sm transition hover:border-zinc-300 hover:shadow-md"
-    >
-      <div className="flex items-start justify-between gap-2">
-        <h3 className="font-medium text-zinc-900">{task.title}</h3>
-        {task.subject && (
-          <Badge variant="secondary" className="shrink-0 text-xs">
-            {task.subject}
-          </Badge>
-        )}
-      </div>
-      {task.dueDate && (
-        <p className="mt-1 text-sm text-zinc-500">{formatDueDate(task.dueDate)}</p>
-      )}
+    <Link href={`/tasks/${task.id}`}>
+      <Card className="hover:border-foreground/20 transition-all hover:shadow-sm cursor-pointer">
+        <CardContent className="flex items-center gap-4 p-4">
+          <div className="flex-1 min-w-0">
+            <p className="font-medium text-foreground truncate">{task.title}</p>
+            <div className="flex items-center gap-2 mt-1 flex-wrap">
+              {task.subject && (
+                <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground font-medium">
+                  {task.subject}
+                </span>
+              )}
+              {due && (
+                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${due.className}`}>
+                  {due.label}
+                </span>
+              )}
+            </div>
+          </div>
+          <span className="text-muted-foreground text-sm">→</span>
+        </CardContent>
+      </Card>
     </Link>
   )
 }
