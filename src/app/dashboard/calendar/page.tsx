@@ -1,12 +1,13 @@
+import Link from 'next/link'
 import { CalendarView, type CalendarTask, type CalendarTimetableEvent } from '@/components/calendar-view'
 import { TimetablePasteForm } from '@/components/timetable-paste-form'
 import { Card, CardContent } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
 import { getEventsForRange } from '@/lib/timetable'
 import { getTasksByUser } from '@/lib/tasks'
 
 export const dynamic = 'force-dynamic'
 
-// Hardcoded for demo - replaced with real auth in a later slice
 const DEMO_USER_ID = 'demo-user-1'
 
 function startOfWeek(date: Date) {
@@ -49,22 +50,37 @@ export default async function CalendarPage() {
   }))
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-8">
-      <header className="flex flex-col gap-2">
-        <h1 className="text-2xl font-bold">Calendar</h1>
-        <p className="text-sm text-muted-foreground">
-          Review due tasks alongside imported ANU MyTimetable events.
-        </p>
+    <div className="flex min-h-screen flex-col bg-background">
+      <header className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur">
+        <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-6">
+          <Link href="/" className="text-base font-semibold tracking-tight">AI Study Planner</Link>
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="sm" asChild>
+              <Link href="/dashboard">← Dashboard</Link>
+            </Button>
+            <Button variant="ghost" size="sm" asChild>
+              <Link href="/dashboard/timetable">Timetable</Link>
+            </Button>
+          </div>
+        </div>
       </header>
 
-      <Card>
-        <CardContent className="p-5">
-          <TimetablePasteForm />
-        </CardContent>
-      </Card>
+      <main className="mx-auto w-full max-w-6xl px-6 py-8 flex flex-col gap-6">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Calendar</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Review due tasks alongside your imported timetable events.
+          </p>
+        </div>
 
-      <CalendarView tasks={calendarTasks} events={calendarEvents} />
+        <Card>
+          <CardContent className="p-5">
+            <TimetablePasteForm />
+          </CardContent>
+        </Card>
+
+        <CalendarView tasks={calendarTasks} events={calendarEvents} />
+      </main>
     </div>
   )
 }
-

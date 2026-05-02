@@ -35,7 +35,7 @@ export function DashboardClient({ initialTasks }: { initialTasks: Task[] }) {
           <Link href="/" className="text-base font-semibold tracking-tight">AI Study Planner</Link>
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="sm" asChild>
-              <Link href="/dashboard/timetable">📅 Timetable</Link>
+              <Link href="/dashboard/calendar">📅 Calendar</Link>
             </Button>
             <Button size="sm" onClick={() => setModalOpen(true)}>+ New Task</Button>
           </div>
