@@ -9,6 +9,7 @@ import {
   CalendarDays,
   CheckCircle2,
   Clock3,
+  HelpCircle,
   ListTodo,
   Plus,
 } from 'lucide-react'
@@ -121,6 +122,12 @@ export function DashboardClient({ initialTasks }: { initialTasks: Task[] }) {
             AI Study Planner
           </Link>
           <div className="flex items-center gap-2">
+            <Button variant="ghost" size="sm" asChild>
+              <Link href="/guide">
+                <HelpCircle />
+                Guide
+              </Link>
+            </Button>
             <Button variant="outline" size="sm" asChild>
               <Link href="/dashboard/calendar">
                 <CalendarDays />

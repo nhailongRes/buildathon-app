@@ -72,6 +72,9 @@ export default async function CalendarPage() {
           <Link href="/" className="text-base font-semibold tracking-tight">AI Study Planner</Link>
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="sm" asChild>
+              <Link href="/guide">Guide</Link>
+            </Button>
+            <Button variant="ghost" size="sm" asChild>
               <Link href="/dashboard">← Dashboard</Link>
             </Button>
             <Button variant="ghost" size="sm" asChild>

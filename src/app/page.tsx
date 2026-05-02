@@ -76,6 +76,9 @@ export default function HomePage() {
           <span className="text-base font-semibold tracking-tight">AI Study Planner</span>
           <nav className="flex items-center gap-2">
             <Button variant="ghost" size="sm" asChild>
+              <Link href="/guide">Guide</Link>
+            </Button>
+            <Button variant="ghost" size="sm" asChild>
               <Link href="/login">Sign in</Link>
             </Button>
             <Button size="sm" asChild>
@@ -105,7 +108,7 @@ export default function HomePage() {
               <Link href="/signup">Get started for free</Link>
             </Button>
             <Button variant="outline" size="lg" asChild>
-              <Link href="#how-it-works">See how it works</Link>
+              <Link href="/guide">See how it works</Link>
             </Button>
           </div>
         </section>
