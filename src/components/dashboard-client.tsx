@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { NewTaskModal } from '@/components/new-task-modal'
 import { TaskCard } from '@/components/task-card'
+import { TaskIntakeChat } from '@/components/task-intake-chat'
 import type { Task } from '@/lib/tasks'
 
 export function DashboardClient({ initialTasks }: { initialTasks: Task[] }) {
@@ -43,6 +44,8 @@ export function DashboardClient({ initialTasks }: { initialTasks: Task[] }) {
       </header>
 
       <main className="mx-auto w-full max-w-4xl px-6 py-10 flex-1">
+        <TaskIntakeChat />
+
         <div className="grid grid-cols-3 gap-4 mb-10">
           {[
             { label: 'Overdue', value: overdue.length, urgent: overdue.length > 0 },

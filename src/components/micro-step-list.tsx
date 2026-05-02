@@ -1,22 +1,23 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Card } from '@/components/ui/card'
+import type { MicroStep } from '@/generated/prisma/client'
 
 export function MicroStepList({ taskId }: { taskId: string }) {
-  const [steps, setSteps] = useState<any[]>([])
+  const [steps, setSteps] = useState<MicroStep[]>([])
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => { fetchSteps() }, [taskId])
-
-  async function fetchSteps() {
+  const fetchSteps = useCallback(async () => {
     try {
       const res = await fetch(`/api/tasks/${taskId}/microsteps`)
       if (res.ok) setSteps(await res.json())
     } finally { setLoading(false) }
-  }
+  }, [taskId])
 
-  async function toggleStep(step: any) {
+  useEffect(() => { fetchSteps() }, [fetchSteps])
+
+  async function toggleStep(step: MicroStep) {
     const updated = steps.map(s => s.id === step.id ? {...s, completed: !s.completed} : s)
     setSteps(updated)
     await fetch(`/api/tasks/${taskId}/microsteps/${step.id}`, {

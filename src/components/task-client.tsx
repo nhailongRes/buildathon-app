@@ -28,6 +28,12 @@ function formatMinutes(mins: number): string {
   return m > 0 ? `${h}h ${m}min` : `${h}h`
 }
 
+function startOfDayMs(date: Date): number {
+  const next = new Date(date)
+  next.setHours(0, 0, 0, 0)
+  return next.getTime()
+}
+
 export function TaskClient({ task }: { task: Task }) {
   const [isBreakingDown, setIsBreakingDown] = useState(false)
   const [isEstimating, setIsEstimating] = useState(false)
@@ -35,10 +41,18 @@ export function TaskClient({ task }: { task: Task }) {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
   const [estimation, setEstimation] = useState<Estimation | null>(null)
+  const [{ nowMs, todayStartMs }] = useState(() => {
+    const now = new Date()
+    return {
+      nowMs: now.getTime(),
+      todayStartMs: startOfDayMs(now),
+    }
+  })
 
   const dueDate = task.dueDate ? new Date(task.dueDate) : null
-  const isOverdue = dueDate && new Date(dueDate).setHours(0,0,0,0) < new Date().setHours(0,0,0,0)
-  const daysLeft = dueDate ? Math.ceil((dueDate.getTime() - Date.now()) / 86400000) : null
+  const dueDayMs = dueDate ? startOfDayMs(dueDate) : null
+  const isOverdue = dueDayMs !== null && dueDayMs < todayStartMs
+  const daysLeft = dueDate ? Math.ceil((dueDate.getTime() - nowMs) / 86400000) : null
 
   async function handleEstimate() {
     setIsEstimating(true)
