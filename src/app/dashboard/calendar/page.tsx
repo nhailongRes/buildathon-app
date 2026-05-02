@@ -38,6 +38,7 @@ export default async function CalendarPage() {
     title: task.title,
     subject: task.subject,
     dueDate: task.dueDate?.toISOString() ?? null,
+    scratchpadContent: task.scratchpadContent,
   }))
 
   const calendarEvents: CalendarTimetableEvent[] = events.map((event) => ({

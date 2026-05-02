@@ -1,4 +1,5 @@
 import { anthropic } from '@ai-sdk/anthropic'
+import { deepseek } from '@ai-sdk/deepseek'
 import { openai } from '@ai-sdk/openai'
 import { generateObject } from 'ai'
 import { NextResponse } from 'next/server'
@@ -16,6 +17,7 @@ export const dynamic = 'force-dynamic'
 
 const DEFAULT_OPENAI_MODEL = 'gpt-5.4-mini'
 const DEFAULT_ANTHROPIC_MODEL = 'claude-sonnet-4-6'
+const DEFAULT_DEEPSEEK_MODEL = 'deepseek-v4-flash'
 
 function currentSydneyDate() {
   return new Intl.DateTimeFormat('en-CA', {
@@ -27,6 +29,10 @@ function currentSydneyDate() {
 }
 
 function getTaskIntakeModel() {
+  if (process.env.DEEPSEEK_API_KEY) {
+    return deepseek(process.env.DEEPSEEK_MODEL ?? DEFAULT_DEEPSEEK_MODEL)
+  }
+
   if (process.env.OPENAI_API_KEY) {
     return openai(process.env.OPENAI_MODEL ?? DEFAULT_OPENAI_MODEL)
   }
@@ -49,7 +55,7 @@ export async function POST(request: Request) {
 
   if (!model) {
     return NextResponse.json(
-      { error: 'OPENAI_API_KEY or ANTHROPIC_API_KEY is required.' },
+      { error: 'DEEPSEEK_API_KEY, OPENAI_API_KEY, or ANTHROPIC_API_KEY is required.' },
       { status: 503 },
     )
   }
