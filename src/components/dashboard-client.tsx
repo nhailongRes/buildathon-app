@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { NewTaskModal } from '@/components/new-task-modal'
@@ -28,7 +29,12 @@ export function DashboardClient({ initialTasks }: { initialTasks: Task[] }) {
     <div className="mx-auto max-w-2xl px-4 py-10">
       <div className="mb-8 flex items-center justify-between">
         <h1 className="text-2xl font-bold text-zinc-900">My Tasks</h1>
-        <Button onClick={() => setModalOpen(true)}>New Task</Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" asChild>
+            <Link href="/dashboard/timetable">Timetable</Link>
+          </Button>
+          <Button onClick={() => setModalOpen(true)}>New Task</Button>
+        </div>
       </div>
 
       {initialTasks.length === 0 ? (

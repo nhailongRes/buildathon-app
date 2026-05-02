@@ -38,3 +38,20 @@ model MicroStep {
 
   task             Task      @relation(fields: [taskId], references: [id], onDelete: Cascade)
 }
+
+model TimetableEvent {
+  id          String   @id @default(cuid())
+  userId      String
+  uid         String
+  title       String
+  startAt     DateTime
+  endAt       DateTime
+  location    String?
+  description String?
+  sourceUrl   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([userId, uid])
+  @@index([userId, startAt])
+}
