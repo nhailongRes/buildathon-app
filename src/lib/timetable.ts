@@ -22,6 +22,20 @@ export async function getEventsForNextDays(
   })
 }
 
+export async function getEventsForRange(
+  userId: string,
+  start: Date,
+  end: Date,
+): Promise<TimetableEvent[]> {
+  return prisma.timetableEvent.findMany({
+    where: {
+      userId,
+      startAt: { gte: start, lt: end },
+    },
+    orderBy: { startAt: 'asc' },
+  })
+}
+
 export async function upsertTimetableEvents(
   userId: string,
   sourceUrl: string,
