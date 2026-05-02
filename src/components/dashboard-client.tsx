@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { NewTaskModal } from '@/components/new-task-modal'
 import { TaskCard } from '@/components/task-card'
+import { TaskIntakeChat } from '@/components/task-intake-chat'
 import type { Task } from '@/lib/tasks'
 
 export function DashboardClient({ initialTasks }: { initialTasks: Task[] }) {
@@ -36,6 +37,8 @@ export function DashboardClient({ initialTasks }: { initialTasks: Task[] }) {
           <Button onClick={() => setModalOpen(true)}>New Task</Button>
         </div>
       </div>
+
+      <TaskIntakeChat />
 
       {initialTasks.length === 0 ? (
         <div className="rounded-xl border border-dashed border-zinc-300 p-12 text-center">
